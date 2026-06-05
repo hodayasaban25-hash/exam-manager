@@ -1,0 +1,2431 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול מבחנים</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css">
+    <style>
+        body { background-color: #f0f4f8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        .hero {
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            color: white; padding: 3rem 0; margin-bottom: 2.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .hero p   { font-size: 1.1rem; opacity: 0.85; }
+
+        .card-test {
+            border: none; border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-test:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0,0,0,0.13); }
+
+        .badge-score { font-size: 0.95rem; padding: 0.45em 0.85em; border-radius: 20px; }
+
+        .form-card { border: none; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+
+        .section-title {
+            font-size: 1.4rem; font-weight: 600; color: #1e3a5f;
+            margin-bottom: 1.2rem; padding-bottom: 0.5rem;
+            border-bottom: 3px solid #2d6a9f; display: inline-block;
+        }
+
+        #empty-state { color: #888; font-size: 1.05rem; }
+        #modal-loading { display: none; }
+
+        /* ── שאלות ── */
+        .question-block { border-radius: 10px; overflow: hidden; margin-bottom: 0.6rem; }
+        .question-row {
+            background: #f0f4f8; padding: 0.65rem 1rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+        }
+        .question-row .q-content { font-weight: 500; flex: 1; }
+        .question-row .q-score   { color: #2d6a9f; font-weight: 600; white-space: nowrap; }
+        .empty-questions { color: #aaa; text-align: center; padding: 1rem 0; }
+
+        /* ── תשובות (collapse) ── */
+        .ans-area {
+            background: #fff; border: 1px solid #dee2e6;
+            border-top: 3px solid #ffc107; border-radius: 0 0 10px 10px; padding: 1rem;
+        }
+        .ans-submit-form { background: #fffdf0; border-radius: 8px; padding: 0.85rem; margin-bottom: 0.75rem; }
+
+        /* ── כרטיסיית תשובה ── */
+        .answer-card {
+            background: #f8fafc; border-radius: 10px;
+            padding: 0.75rem 1rem; margin-bottom: 0.6rem;
+            border-right: 4px solid #0d6efd;
+        }
+        .answer-card .student-name { font-weight: 700; font-size: 0.95rem; }
+        .score-pill { font-size: 0.85rem; }
+
+        .feedback-bubble {
+            background: #e8f4fd; color: #1e3a5f;
+            border-radius: 10px; padding: 0.5rem 0.75rem;
+            font-size: 0.88rem; margin-top: 0.4rem; line-height: 1.5;
+        }
+        .feedback-bubble::before { content: '💬 '; }
+
+        /* ── הגשת מבחן שלם ── */
+        .submission-form-area {
+            background: #f0fff4; border: 1px solid #b2dfdb;
+            border-radius: 12px; padding: 1.1rem; margin-bottom: 1.2rem;
+        }
+
+        .submission-card {
+            background: #fff; border-radius: 12px;
+            border-right: 4px solid #198754;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+            padding: 0.85rem 1rem; margin-bottom: 0.7rem;
+        }
+        .submission-card .student-name { font-weight: 700; font-size: 0.95rem; }
+
+        .grade-badge {
+            font-size: 1rem; font-weight: 700;
+            padding: 0.35em 0.8em; border-radius: 20px;
+        }
+
+        .general-feedback-bubble {
+            background: #e8f5e9; color: #1b5e20;
+            border-radius: 10px; padding: 0.5rem 0.75rem;
+            font-size: 0.88rem; margin-top: 0.5rem; line-height: 1.5;
+        }
+        .general-feedback-bubble::before { content: '📝 '; }
+
+        .solution-badge {
+            font-size: 0.75rem; padding: 0.2em 0.55em;
+            border-radius: 6px; vertical-align: middle;
+        }
+
+        /* ── דאשבורד דוחות ── */
+        .stat-card {
+            border: none; border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 1.4rem 1.6rem; text-align: center;
+        }
+        .stat-card .stat-value { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+        .stat-card .stat-label {
+            font-size: 0.85rem; font-weight: 600;
+            text-transform: uppercase; opacity: 0.75; margin-top: 0.3rem;
+        }
+        .grade-bar-label { font-size: 0.9rem; font-weight: 600; min-width: 130px; }
+        .grade-bar-count { font-size: 0.85rem; color: #666; min-width: 36px; text-align: end; }
+        .report-placeholder { color: #aaa; font-size: 1.05rem; text-align: center; padding: 3rem 0; }
+
+        /* ── מודל ציוני תלמיד ── */
+        .grade-history-card {
+            background: #f8fafc; border-radius: 10px;
+            border-right: 4px solid #6f42c1;
+            padding: 0.75rem 1rem; margin-bottom: 0.6rem;
+        }
+        .grade-history-card .test-title { font-weight: 700; font-size: 0.95rem; }
+        .subject-tag {
+            font-size: 0.78rem; padding: 0.15em 0.5em;
+            border-radius: 10px; background: #ede7f6; color: #4a148c;
+        }
+
+        /* ── נאבר ── */
+        .app-navbar {
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            padding: 0.7rem 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .app-navbar .brand { font-size: 1.25rem; font-weight: 700; color: white; }
+
+        /* ── ניהול כיתות ── */
+        .mgmt-table { font-size: 0.9rem; }
+        .mgmt-table th { font-weight: 600; background: #f0f4f8; }
+        .student-row-name { font-weight: 600; }
+        .classroom-pill {
+            font-size: 0.78rem; padding: 0.2em 0.6em;
+            border-radius: 12px; background: #e3eaf5; color: #1e3a5f;
+        }
+
+        /* ── כפתורי עריכה/מחיקה ── */
+        .btn-action { padding: 0.15rem 0.45rem; font-size: 0.8rem; line-height: 1.4; border-radius: 6px; }
+        .action-col { white-space: nowrap; }
+
+        /* ── כפתורי פעולה בטבלאות ── */
+        .action-col { width: 100px; white-space: nowrap; }
+        .btn-action  { padding: 0.1rem 0.45rem; font-size: 0.82rem; line-height: 1.4; }
+
+        /* ── מסך התחברות ── */
+        #login-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-card {
+            background: white; border-radius: 20px;
+            padding: 2.5rem 2rem; width: 100%; max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        }
+        .login-card .app-logo { font-size: 2rem; font-weight: 800; color: #1e3a5f; margin-bottom: 0.2rem; }
+        .login-card .app-sub  { color: #888; font-size: 0.95rem; margin-bottom: 1.5rem; }
+
+        /* ══ צ'אט עוזר אישי ══ */
+        #chat-fab {
+            position: fixed; bottom: 28px; left: 28px;
+            width: 62px; height: 62px; border-radius: 50%;
+            background: linear-gradient(145deg, #2d6a9f, #1e3a5f);
+            color: white; border: none; cursor: pointer; font-size: 1.65rem;
+            box-shadow: 0 6px 20px rgba(30,58,95,0.45), 0 2px 6px rgba(0,0,0,0.2),
+                        inset 0 1px 0 rgba(255,255,255,0.18);
+            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+            z-index: 1050;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #chat-fab:hover {
+            transform: translateY(-6px) scale(1.1);
+            box-shadow: 0 14px 32px rgba(30,58,95,0.52), 0 4px 10px rgba(0,0,0,0.25),
+                        inset 0 1px 0 rgba(255,255,255,0.22);
+        }
+        #chat-fab:active { transform: translateY(-2px) scale(1.02); }
+        #chat-fab-badge {
+            position: absolute; top: -2px; right: -2px;
+            width: 16px; height: 16px; background: #e74c3c;
+            border-radius: 50%; border: 2.5px solid #f0f4f8; display: none;
+        }
+        #chat-fab-badge.visible { display: block; }
+
+        #chat-window {
+            position: fixed; bottom: 108px; left: 28px;
+            width: 370px;
+            background: #fff; border-radius: 20px;
+            box-shadow: 0 16px 52px rgba(30,58,95,0.22), 0 2px 8px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; z-index: 1049;
+            overflow: hidden;
+            transform-origin: bottom left;
+            transform: scale(0.82) translateY(24px);
+            opacity: 0; pointer-events: none;
+            transition: transform 0.3s cubic-bezier(.34,1.3,.64,1), opacity 0.22s ease;
+        }
+        #chat-window.chat-open {
+            transform: scale(1) translateY(0);
+            opacity: 1; pointer-events: all;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            color: white; padding: 0.8rem 1.1rem;
+            display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;
+        }
+        .chat-header .bot-avatar {
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.25);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; flex-shrink: 0;
+        }
+        .chat-header .bot-info { flex: 1; min-width: 0; }
+        .chat-header .bot-name { font-weight: 700; font-size: 0.9rem; line-height: 1.3; }
+        .chat-header .bot-status { font-size: 0.72rem; opacity: 0.78; }
+        .chat-header .bot-status::before {
+            content: ''; display: inline-block;
+            width: 6px; height: 6px; background: #4ade80;
+            border-radius: 50%; margin-left: 4px; vertical-align: middle;
+        }
+        .chat-close-btn {
+            background: none; border: none; color: rgba(255,255,255,0.75);
+            font-size: 1.1rem; cursor: pointer; padding: 4px 6px;
+            border-radius: 6px; line-height: 1; flex-shrink: 0;
+            transition: color 0.15s, background 0.15s;
+        }
+        .chat-close-btn:hover { color: white; background: rgba(255,255,255,0.15); }
+
+        #chat-messages {
+            flex: 1; overflow-y: auto; padding: 0.9rem 0.85rem;
+            display: flex; flex-direction: column; gap: 0.6rem;
+            background: #f5f8fc; min-height: 280px; max-height: 360px;
+        }
+        #chat-messages::-webkit-scrollbar { width: 4px; }
+        #chat-messages::-webkit-scrollbar-track { background: transparent; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #c8d4e4; border-radius: 4px; }
+
+        .chat-msg {
+            max-width: 83%; padding: 0.55rem 0.85rem;
+            border-radius: 14px; font-size: 0.875rem;
+            line-height: 1.55; word-break: break-word;
+            animation: msgIn 0.22s ease;
+        }
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .chat-msg.bot {
+            align-self: flex-start;
+            background: #fff; color: #1e3a5f;
+            border: 1px solid #dde6f0;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .chat-msg.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            color: white; border-bottom-left-radius: 4px;
+        }
+        .thinking-dots {
+            align-self: flex-start; display: flex; align-items: center;
+            gap: 5px; padding: 0.65rem 1rem;
+            background: #fff; border: 1px solid #dde6f0;
+            border-radius: 14px; border-bottom-right-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            animation: msgIn 0.22s ease;
+        }
+        .thinking-dots span {
+            width: 7px; height: 7px; background: #90a8c4;
+            border-radius: 50%; animation: dotBounce 1.3s ease-in-out infinite;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.18s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.36s; }
+        @keyframes dotBounce {
+            0%, 60%, 100% { transform: translateY(0);    opacity: 0.45; }
+            30%            { transform: translateY(-7px); opacity: 1; }
+        }
+
+        .chat-input-row {
+            padding: 0.65rem 0.8rem; display: flex; gap: 0.5rem;
+            background: #fff; border-top: 1px solid #e6eef5; flex-shrink: 0;
+            align-items: flex-end;
+        }
+        #chat-input {
+            flex: 1; border: 1.5px solid #cdd8e8; border-radius: 12px;
+            padding: 0.5rem 0.75rem; font-size: 0.875rem;
+            resize: none; outline: none; max-height: 88px; min-height: 38px;
+            line-height: 1.5; font-family: inherit; color: #1e3a5f;
+            transition: border-color 0.15s; background: #f9fbfd;
+        }
+        #chat-input:focus { border-color: #2d6a9f; background: #fff; }
+        #chat-send {
+            width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+            background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+            color: white; border: none; cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(30,58,95,0.35);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        #chat-send:hover { transform: scale(1.1); box-shadow: 0 4px 14px rgba(30,58,95,0.45); }
+        #chat-send:active { transform: scale(0.93); }
+    </style>
+</head>
+<body>
+
+<!-- ══ מסך התחברות ══ -->
+<div id="login-overlay">
+    <div class="login-card">
+        <div class="app-logo">📋 מערכת ניהול מבחנים</div>
+        <div class="app-sub">כניסה למורים</div>
+
+        <!-- טאבים -->
+        <ul class="nav nav-tabs mb-3" id="auth-tabs">
+            <li class="nav-item">
+                <button class="nav-link active" data-tab="login" onclick="showAuthTab('login')">התחברות</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-tab="register" onclick="showAuthTab('register')">הרשמה</button>
+            </li>
+        </ul>
+
+        <!-- התחברות -->
+        <div id="auth-login-tab">
+            <form id="login-form">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">מספר זהות</label>
+                    <input type="text" id="login-id" class="form-control" placeholder="123456789" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">סיסמה</label>
+                    <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required>
+                </div>
+                <div id="login-error" class="alert alert-danger d-none py-2 small"></div>
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">התחבר</button>
+            </form>
+            <div class="text-center mt-2">
+                <button type="button" class="btn btn-link btn-sm text-secondary p-0"
+                        onclick="showAuthTab('forgot')">שכחתי סיסמה</button>
+            </div>
+        </div>
+
+        <!-- הרשמה -->
+        <div id="auth-register-tab" style="display:none">
+            <form id="register-form">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">מספר זהות</label>
+                    <input type="text" id="reg-id" class="form-control" placeholder="123456789" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">שם מלא</label>
+                    <input type="text" id="reg-name" class="form-control" placeholder="ישראל ישראלי" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">אימייל</label>
+                    <input type="email" id="reg-email" class="form-control" placeholder="teacher@school.co.il">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">סיסמה</label>
+                    <input type="password" id="reg-pass" class="form-control" placeholder="••••••••" required>
+                </div>
+                <div id="register-error" class="alert alert-danger d-none py-2 small"></div>
+                <button type="submit" class="btn btn-success w-100 fw-semibold">הירשם והתחבר</button>
+            </form>
+        </div>
+
+        <!-- שחזור סיסמה -->
+        <div id="auth-forgot-tab" style="display:none">
+            <div class="mb-3">
+                <button type="button" class="btn btn-link btn-sm p-0 text-secondary mb-2"
+                        onclick="showAuthTab('login')">← חזרה להתחברות</button>
+                <p class="small text-muted">הזן את כתובת האימייל הרשומה ונשלח אליך הוראות לשחזור הסיסמה.</p>
+            </div>
+            <form id="forgot-form">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">אימייל</label>
+                    <input type="email" id="forgot-email" class="form-control" placeholder="teacher@school.co.il" required>
+                </div>
+                <div id="forgot-error" class="alert alert-danger d-none py-2 small"></div>
+                <div id="forgot-success" class="alert alert-success d-none py-2 small"></div>
+                <button type="submit" class="btn btn-warning w-100 fw-semibold">שלח הוראות שחזור</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ נאבר ══ -->
+<nav class="app-navbar">
+    <div class="container d-flex justify-content-between align-items-center">
+        <span class="brand">📋 מערכת ניהול מבחנים</span>
+        <div class="d-flex align-items-center gap-2">
+            <button id="nav-tests-btn" class="btn btn-light btn-sm fw-semibold"
+                    onclick="showSection('tests')">📋 ניהול מבחנים</button>
+            <button id="nav-classrooms-btn" class="btn btn-outline-light btn-sm fw-semibold"
+                    onclick="showSection('classrooms')">🏫 ניהול כיתות ותלמידים</button>
+            <button id="nav-reports-btn" class="btn btn-outline-light btn-sm fw-semibold"
+                    onclick="showSection('reports')">📊 דוחות וסטטיסטיקות</button>
+            <button id="nav-admin-btn" class="btn btn-outline-warning btn-sm fw-semibold d-none"
+                    onclick="showSection('admin')">👩‍💼 ניהול מורות</button>
+            <div id="teacher-info" class="d-flex align-items-center gap-2 me-2 d-none">
+                <span class="text-white small opacity-85" id="teacher-name-display"></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">יציאה</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ══ סקציית מבחנים ══ -->
+<div id="section-tests">
+<div class="container pb-5 pt-4">
+
+    <!-- ══ טופס יצירת מבחן ══ -->
+    <div class="card form-card p-4 mb-5">
+        <h2 class="section-title">יצירת מבחן חדש</h2>
+        <form id="create-test-form">
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-9">
+                    <label for="test-title" class="form-label fw-semibold">כותרת המבחן</label>
+                    <input type="text" id="test-title" class="form-control form-control-lg"
+                           placeholder='לדוגמה: "מבחן מתמטיקה — יחידה 3"' required>
+                </div>
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">➕ צור מבחן</button>
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label for="test-classroom" class="form-label fw-semibold">🏫 כיתה (חובה)</label>
+                    <select id="test-classroom" class="form-select" required>
+                        <option value="">בחר כיתה...</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="test-subject" class="form-label fw-semibold">📚 מקצוע (חובה)</label>
+                    <select id="test-subject" class="form-select" required>
+                        <option value="">בחר מקצוע...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label for="source-type" class="form-label fw-semibold">סוג חומרי המקור של המבחן</label>
+                    <select id="source-type" class="form-select" onchange="onSourceTypeChange()">
+                        <option value="none">📝 הזנה ידנית (ללא העלאת קובץ מקור)</option>
+                        <option value="question">📋 שאלון בלבד (קובץ שאלות)</option>
+                        <option value="solution">🔑 פתרון בלבד (מפתח תשובות)</option>
+                        <option value="combined">📄 שאלון משולב עם פתרון בקובץ אחד</option>
+                        <option value="both">📂 שאלון ופתרון (בשני קבצים נפרדים)</option>
+                    </select>
+                </div>
+                <div class="col-md-7" id="source-file-wrapper" style="display:none">
+                    <!-- מצב קובץ יחיד -->
+                    <div id="single-file-area">
+                        <label for="source-file" class="form-label fw-semibold" id="source-file-label">קובץ מקור</label>
+                        <input type="file" id="source-file" class="form-control" accept="image/*,.pdf">
+                        <div class="form-text" id="source-file-hint"></div>
+                    </div>
+                    <!-- מצב שני קבצים נפרדים -->
+                    <div id="dual-file-area" style="display:none">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label for="source-file-question" class="form-label fw-semibold">📋 קובץ שאלון</label>
+                                <input type="file" id="source-file-question" class="form-control form-control-sm" accept="image/*,.pdf">
+                                <div class="form-text">קובץ השאלות של המבחן</div>
+                            </div>
+                            <div class="col-6">
+                                <label for="source-file-solution" class="form-label fw-semibold">🔑 קובץ פתרון</label>
+                                <input type="file" id="source-file-solution" class="form-control form-control-sm" accept="image/*,.pdf">
+                                <div class="form-text">מפתח התשובות של המורה</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div id="form-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+    </div>
+
+    <!-- ══ רשימת מבחנים ══ -->
+    <div>
+        <span class="section-title">המבחנים הקיימים</span>
+        <p id="empty-state" class="text-center mt-4 d-none">עדיין אין מבחנים. צור את המבחן הראשון שלך למעלה!</p>
+        <div id="tests-container" class="row g-4 mt-1"></div>
+    </div>
+</div><!-- /container -->
+</div><!-- /section-tests -->
+
+<!-- ══ סקציית ניהול כיתות ותלמידים ══ -->
+<div id="section-classrooms" style="display:none">
+    <div class="container pb-5 pt-4">
+        <div class="row g-4">
+
+            <!-- עמוד כיתות -->
+            <div class="col-md-4">
+                <div class="card form-card p-4 h-100">
+                    <h2 class="section-title">🏫 ניהול כיתות</h2>
+                    <form id="add-classroom-form" class="mb-4">
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label for="classroom-name" class="form-label fw-semibold">שם הכיתה</label>
+                                <input type="text" id="classroom-name" class="form-control"
+                                       placeholder='לדוגמה: "י-א"' required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">➕ הוסף כיתה</button>
+                            </div>
+                        </div>
+                        <div id="classroom-error" class="alert alert-danger mt-2 d-none small"></div>
+                    </form>
+                    <h6 class="fw-bold text-secondary mb-3">כיתות קיימות</h6>
+                    <div id="classrooms-table-wrap"></div>
+                </div>
+            </div>
+
+            <!-- עמוד תלמידים -->
+            <div class="col-md-5">
+                <div class="card form-card p-4 h-100">
+                    <h2 class="section-title">👤 ניהול תלמידים</h2>
+                    <form id="add-student-form" class="mb-4">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label for="student-first" class="form-label fw-semibold">שם פרטי</label>
+                                <input type="text" id="student-first" class="form-control"
+                                       placeholder="ישראל" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="student-last" class="form-label fw-semibold">שם משפחה</label>
+                                <input type="text" id="student-last" class="form-control"
+                                       placeholder="ישראלי" required>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="student-classroom" class="form-label fw-semibold">כיתה</label>
+                            <select id="student-classroom" class="form-select" required>
+                                <option value="">בחר כיתה...</option>
+                            </select>
+                        </div>
+                        <div id="student-error" class="alert alert-danger d-none small mb-2"></div>
+                        <button type="submit" class="btn btn-success w-100">➕ הוסף תלמיד</button>
+                    </form>
+                    <h6 class="fw-bold text-secondary mb-3">תלמידים קיימים</h6>
+                    <div id="students-table-wrap"></div>
+                </div>
+            </div>
+
+            <!-- עמוד מקצועות -->
+            <div class="col-md-3">
+                <div class="card form-card p-4 h-100">
+                    <h2 class="section-title">📚 ניהול מקצועות</h2>
+                    <form id="add-subject-form" class="mb-4">
+                        <div class="mb-2">
+                            <label for="subject-name" class="form-label fw-semibold">שם המקצוע</label>
+                            <input type="text" id="subject-name" class="form-control"
+                                   placeholder='לדוגמה: "מתמטיקה"' required>
+                        </div>
+                        <div id="subject-error" class="alert alert-danger d-none small mb-2"></div>
+                        <button type="submit" class="btn btn-primary w-100">➕ הוסף מקצוע</button>
+                    </form>
+                    <h6 class="fw-bold text-secondary mb-3">מקצועות קיימים</h6>
+                    <div id="subjects-table-wrap"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div><!-- /section-classrooms -->
+
+<!-- ══ סקציית דוחות וסטטיסטיקות ══ -->
+<div id="section-reports" style="display:none">
+    <div class="container pb-5 pt-4">
+
+        <!-- בחירת כיתה -->
+        <div class="card form-card p-4 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
+                    <h2 class="section-title mb-0">📊 דוחות וסטטיסטיקות כיתתיות</h2>
+                </div>
+                <div class="col-md-4">
+                    <select id="report-classroom" class="form-select"
+                            onchange="loadClassReport()">
+                        <option value="">בחר כיתה להצגת הדוח...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- תוצאת הדוח -->
+        <div id="report-placeholder" class="report-placeholder">
+            🏫 בחר כיתה כדי להציג את הדוח הכיתתי
+        </div>
+
+        <div id="report-content" style="display:none">
+
+            <!-- שורת כרטיסי סטטיסטיקה -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card" style="background:#e8f4fd;">
+                        <div class="stat-value text-primary" id="stat-avg">—</div>
+                        <div class="stat-label text-primary">ממוצע כיתתי</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card" style="background:#e8f5e9;">
+                        <div class="stat-value text-success" id="stat-pass">—</div>
+                        <div class="stat-label text-success">אחוז עוברים</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card" style="background:#f3e5f5;">
+                        <div class="stat-value text-secondary" id="stat-total">—</div>
+                        <div class="stat-label text-secondary">מחברות שנבדקו</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- פילוג ציונים — Progress Bars -->
+            <div class="card form-card p-4">
+                <h5 class="fw-bold text-secondary mb-4">פילוג ציונים בכיתה</h5>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="grade-bar-label">🌟 מצטיינים (86–100)</span>
+                        <span class="grade-bar-count" id="bar-excellent-count">0</span>
+                    </div>
+                    <div class="progress" style="height:22px; border-radius:10px;">
+                        <div id="bar-excellent" class="progress-bar bg-success fw-bold"
+                             role="progressbar" style="width:0%;border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="grade-bar-label">👍 טובים (71–85)</span>
+                        <span class="grade-bar-count" id="bar-good-count">0</span>
+                    </div>
+                    <div class="progress" style="height:22px; border-radius:10px;">
+                        <div id="bar-good" class="progress-bar bg-primary fw-bold"
+                             role="progressbar" style="width:0%;border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="grade-bar-label">✔ עוברים (56–70)</span>
+                        <span class="grade-bar-count" id="bar-passing-count">0</span>
+                    </div>
+                    <div class="progress" style="height:22px; border-radius:10px;">
+                        <div id="bar-passing" class="progress-bar bg-warning fw-bold"
+                             role="progressbar" style="width:0%;border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="grade-bar-label">⚠ זקוקים לחיזוק (0–55)</span>
+                        <span class="grade-bar-count" id="bar-fail-count">0</span>
+                    </div>
+                    <div class="progress" style="height:22px; border-radius:10px;">
+                        <div id="bar-fail" class="progress-bar bg-danger fw-bold"
+                             role="progressbar" style="width:0%;border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ממוצעים אישיים לתלמידים -->
+            <div class="d-flex justify-content-end mt-4 mb-2">
+                <button class="btn btn-success btn-sm" onclick="exportReportToCSV()" id="btn-export-csv" style="display:none">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>ייצוא דוח ל-Excel (CSV)
+                </button>
+            </div>
+            <div id="student-averages-wrap" class="card form-card p-4" style="display:none">
+                <h5 class="fw-bold text-secondary mb-3">ממוצעים אישיים לתלמידים</h5>
+                <div id="student-averages-table"></div>
+            </div>
+
+        </div><!-- /report-content -->
+
+    </div>
+</div><!-- /section-reports -->
+
+<!-- ══ סקציית ניהול מורות (מנהל בלבד) ══ -->
+<div id="section-admin" style="display:none">
+    <div class="container pb-5 pt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title mb-0">👩‍💼 ניהול מורות</h2>
+            <button class="btn btn-outline-secondary btn-sm" onclick="loadAdminTeachers()">
+                <i class="bi bi-arrow-clockwise me-1"></i>רענן רשימה
+            </button>
+        </div>
+        <div class="card form-card p-4">
+            <p class="text-muted small mb-3">
+                כאן תוכל לשנות את תפקיד כל מורה ואת המקצוע שלה.
+                שים לב: שינוי תפקיד יכנס לתוקף בפעם הבאה שהמורה מתחברת.
+            </p>
+            <div id="admin-teachers-list">
+                <div class="text-center text-muted py-4">בחר בלשונית ניהול מורות לטעינת הרשימה</div>
+            </div>
+        </div>
+    </div>
+</div><!-- /section-admin -->
+
+<!-- ══════════════ Modal ניהול מבחן ══════════════ -->
+<div class="modal fade" id="questionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="questionsModalLabel">ניהול מבחן</h5>
+                <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- טאבים -->
+            <div class="modal-body p-0">
+                <ul class="nav nav-tabs nav-fill px-3 pt-3" id="modalTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-questions">
+                            📝 שאלות ותשובות
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-submissions"
+                                onclick="loadSubmissions()">
+                            🎓 מחברות בחינה (אוטומטי)
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content px-3 py-3">
+
+                    <!-- ══ TAB 1: שאלות ══ -->
+                    <div class="tab-pane fade show active" id="tab-questions">
+                        <h6 class="fw-bold text-secondary mb-2">שאלות קיימות</h6>
+                        <div id="modal-loading" class="text-center py-2">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        </div>
+                        <div id="modal-questions-list" class="mb-4"></div>
+
+                        <hr>
+
+                        <h6 class="fw-bold text-secondary mb-3">הוספת שאלה חדשה</h6>
+                        <form id="add-question-form">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">תוכן השאלה</label>
+                                <input type="text" id="q-content" class="form-control"
+                                       placeholder="הקלד את השאלה כאן..." required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">ניקוד מקסימלי</label>
+                                <input type="number" id="q-score" class="form-control" min="1"
+                                       placeholder="לדוגמה: 10" required>
+                            </div>
+                            <div id="q-error" class="alert alert-danger d-none" role="alert"></div>
+                            <button type="submit" class="btn btn-success w-100">✔ הוסף שאלה</button>
+                        </form>
+                    </div>
+
+                    <!-- ══ TAB 2: הגשות ══ -->
+                    <div class="tab-pane fade" id="tab-submissions">
+
+                        <div class="alert alert-success d-flex align-items-center mb-3 py-2" role="alert">
+                            <span class="fs-5 me-2">🤖</span>
+                            <span><strong>סריקת מחברות בחינה שלמות — בדיקת AI אוטומטית</strong><br>
+                            <small class="text-muted">העלה מחברת סרוקה של תלמיד וה-AI יבדוק, יציין ויספק משוב בשניות.</small></span>
+                        </div>
+
+                        <!-- טופס הגשה -->
+                        <div class="submission-form-area">
+                            <p class="fw-bold mb-3">📤 הגשת מחברת בחינה חדשה לבדיקה</p>
+                            <form id="submit-exam-form">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-5">
+                                        <select id="sub-student-id" class="form-select" required>
+                                            <option value="">בחר תלמיד...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <input type="file" id="sub-exam-file" class="form-control"
+                                               accept="image/*,.pdf" required>
+                                    </div>
+                                </div>
+                                <div id="sub-error" class="alert alert-danger d-none py-2 small mb-2"></div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    🤖 שלח לבדיקת מבחן מלאה
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- טבלת הגשות -->
+                        <h6 class="fw-bold text-secondary mb-3">מחברות שנבדקו</h6>
+                        <div id="submissions-loading" class="text-center py-2 d-none">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        </div>
+                        <div id="submissions-list"></div>
+                    </div>
+
+                </div><!-- /tab-content -->
+            </div><!-- /modal-body -->
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ Modal היסטוריית ציונים ══════════════ -->
+<div class="modal fade" id="gradesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: #6f42c1; color: white;">
+                <h5 class="modal-title" id="gradesModalLabel">היסטוריית ציונים</h5>
+                <button type="button" class="btn-close btn-close-white ms-0 me-auto"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="grades-loading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                </div>
+                <div id="grades-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════ Modal עריכה כללי ══════════════ -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="editModalTitle">עריכה</h5>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+                <button type="button" class="btn btn-primary" id="editModalSave">💾 שמור שינויים</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API_BASE = '/api/tests';
+    let activeTestId = null;
+
+    // ══════════════════════════════════════════════
+    //  apiFetch — מוסיף X-Teacher-Id אוטומטית
+    // ══════════════════════════════════════════════
+
+    function apiFetch(url, options = {}) {
+        const teacher = JSON.parse(localStorage.getItem('teacher') || 'null');
+        const headers = { ...(options.headers || {}) };
+        if (teacher && teacher.id) headers['X-Teacher-Id'] = teacher.id;
+        return fetch(url, { ...options, headers });
+    }
+    let submissionsLoaded = false;
+    const loadedAnswerQuestions = new Set();
+    const questionsModal = new bootstrap.Modal(document.getElementById('questionsModal'));
+
+    // ══════════════════════════════════════════════
+    //  יצירת מבחן
+    // ══════════════════════════════════════════════
+
+    // ── הצגת/הסתרת שדה קובץ לפי סוג מקור ──────────
+    function onSourceTypeChange() {
+        const type       = document.getElementById('source-type').value;
+        const wrapper    = document.getElementById('source-file-wrapper');
+        const singleArea = document.getElementById('single-file-area');
+        const dualArea   = document.getElementById('dual-file-area');
+        const label      = document.getElementById('source-file-label');
+        const hint       = document.getElementById('source-file-hint');
+
+        if (type === 'none') {
+            wrapper.style.display = 'none';
+            document.getElementById('source-file').value = '';
+            document.getElementById('source-file-question').value = '';
+            document.getElementById('source-file-solution').value = '';
+            return;
+        }
+
+        wrapper.style.display = '';
+
+        if (type === 'both') {
+            singleArea.style.display = 'none';
+            dualArea.style.display   = '';
+            document.getElementById('source-file').value = '';
+        } else {
+            singleArea.style.display = '';
+            dualArea.style.display   = 'none';
+            document.getElementById('source-file-question').value = '';
+            document.getElementById('source-file-solution').value = '';
+            const labels = {
+                question: { text: '📋 קובץ שאלון המבחן',        hint: 'ה-AI ישתמש בשאלון לבדיקת מחברות.' },
+                solution: { text: '🔑 קובץ מפתח תשובות',         hint: 'ה-AI ישתמש בפתרון לציון אוטומטי.' },
+                combined: { text: '📄 קובץ שאלון + פתרון משולב', hint: 'הקובץ ישמש גם כשאלון וגם כפתרון.' }
+            };
+            label.textContent = labels[type].text;
+            hint.textContent  = labels[type].hint;
+        }
+    }
+
+    // ── יצירת מבחן ───────────────────────────────
+    document.getElementById('create-test-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const titleInput = document.getElementById('test-title');
+        const sourceType = document.getElementById('source-type').value;
+        const sourceFile = document.getElementById('source-file');
+        const errorBox   = document.getElementById('form-error');
+        errorBox.classList.add('d-none');
+
+        const classroomId = parseInt(document.getElementById('test-classroom').value) || null;
+        const subjectId   = parseInt(document.getElementById('test-subject').value)   || null;
+        const body = { title: titleInput.value.trim() };
+        if (classroomId) body.classroomId = classroomId;
+        if (subjectId)   body.subjectId   = subjectId;
+
+        if (sourceType === 'both') {
+            const qFile = document.getElementById('source-file-question').files[0];
+            const sFile = document.getElementById('source-file-solution').files[0];
+            try {
+                if (qFile) body.questionPaperFile  = await fileToBase64(qFile);
+                if (sFile) body.masterSolutionFile = await fileToBase64(sFile);
+            } catch { errorBox.textContent = 'שגיאה בקריאת הקבצים.'; errorBox.classList.remove('d-none'); return; }
+        } else if (sourceType !== 'none' && sourceFile.files[0]) {
+            let base64;
+            try { base64 = await fileToBase64(sourceFile.files[0]); }
+            catch { errorBox.textContent = 'שגיאה בקריאת הקובץ.'; errorBox.classList.remove('d-none'); return; }
+            if (sourceType === 'question' || sourceType === 'combined') body.questionPaperFile  = base64;
+            if (sourceType === 'solution' || sourceType === 'combined') body.masterSolutionFile = base64;
+        }
+
+        try {
+            const res = await apiFetch(API_BASE, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.title || 'אירעה שגיאה ביצירת המבחן';
+                errorBox.classList.remove('d-none'); return;
+            }
+            titleInput.value = ''; sourceFile.value = '';
+            document.getElementById('source-file-question').value = '';
+            document.getElementById('source-file-solution').value = '';
+            document.getElementById('source-type').value = 'none';
+            document.getElementById('test-classroom').value = '';
+            document.getElementById('test-subject').value = '';
+            onSourceTypeChange();
+            await loadTests();
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    // ══════════════════════════════════════════════
+    //  מבחנים
+    // ══════════════════════════════════════════════
+
+    async function loadTests() {
+        try { renderTests(await (await apiFetch(API_BASE)).json()); }
+        catch (err) { console.error('שגיאה בטעינת המבחנים:', err); }
+    }
+
+    function renderTests(tests) {
+        const container  = document.getElementById('tests-container');
+        const emptyState = document.getElementById('empty-state');
+        container.innerHTML = '';
+        if (tests.length === 0) { emptyState.classList.remove('d-none'); return; }
+        emptyState.classList.add('d-none');
+
+        tests.forEach(test => {
+            const col = document.createElement('div');
+            col.className = 'col-sm-6 col-lg-4';
+                col.innerHTML = `
+                <div class="card card-test h-100 p-3">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-secondary">#${test.id}</span>
+                            <span class="badge bg-success badge-score" id="score-badge-${test.id}">
+                                ניקוד כולל: ${test.totalScore}
+                            </span>
+                        </div>
+                        <h5 class="card-title fw-bold mt-2">${escapeHtml(test.title)}</h5>
+                        <p class="card-text text-muted small mb-2" id="q-count-${test.id}">
+                            ${test.questions ? test.questions.length : 0} שאלות
+                        </p>
+                        <div class="d-flex gap-1 flex-wrap mb-2">
+                            ${test.questionPaperFile  ? '<span class="badge bg-info text-dark">📋 שאלון</span>' : ''}
+                            ${test.masterSolutionFile ? '<span class="badge bg-warning text-dark">🔑 פתרון</span>' : ''}
+                        </div>
+                        <div class="mt-auto pt-2 d-flex flex-column gap-2">
+                            <button class="btn btn-outline-primary btn-sm w-100"
+                                    onclick="openQuestionsModal(${test.id}, '${escapeHtml(test.title)}')">
+                                📝 ניהול מבחן
+                            </button>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-warning btn-sm flex-fill"
+                                        onclick="editTest(${test.id}, '${escapeHtml(test.title)}',
+                                                          ${test.subject ? test.subject.id : 'null'},
+                                                          ${test.classroom ? test.classroom.id : 'null'})">
+                                    ✏️ עריכה
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm flex-fill"
+                                        onclick="deleteTest(${test.id}, '${escapeHtml(test.title)}')">
+                                    🗑️ מחיקה
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            container.appendChild(col);
+        });
+    }
+
+    async function refreshTestCard(testId) {
+        const test = await (await apiFetch(`${API_BASE}/${testId}`)).json();
+        const sb = document.getElementById(`score-badge-${testId}`);
+        const qc = document.getElementById(`q-count-${testId}`);
+        if (sb) sb.textContent = `ניקוד כולל: ${test.totalScore}`;
+        if (qc) qc.textContent = `${test.questions ? test.questions.length : 0} שאלות`;
+    }
+
+    // ══════════════════════════════════════════════
+    //  Modal — פתיחה
+    // ══════════════════════════════════════════════
+
+    async function openQuestionsModal(testId, testTitle) {
+        activeTestId = testId;
+        submissionsLoaded = false;
+        loadedAnswerQuestions.clear();
+
+        document.getElementById('questionsModalLabel').textContent = `ניהול מבחן — ${testTitle}`;
+        document.getElementById('q-content').value = '';
+        document.getElementById('q-score').value = '';
+        document.getElementById('q-error').classList.add('d-none');
+        document.getElementById('sub-student-id').value = '';
+        document.getElementById('sub-exam-file').value = '';
+        document.getElementById('sub-error').classList.add('d-none');
+        loadStudentsDropdown();
+        document.getElementById('submissions-list').innerHTML = '';
+
+        // חזרה לטאב הראשון
+        new bootstrap.Tab(document.querySelector('#modalTabs .nav-link')).show();
+
+        questionsModal.show();
+        await loadModalQuestions();
+    }
+
+    // ══════════════════════════════════════════════
+    //  שאלות
+    // ══════════════════════════════════════════════
+
+    async function loadModalQuestions() {
+        const list    = document.getElementById('modal-questions-list');
+        const spinner = document.getElementById('modal-loading');
+        list.innerHTML = ''; spinner.style.display = 'block';
+        try {
+            const test = await (await apiFetch(`${API_BASE}/${activeTestId}`)).json();
+            renderModalQuestions(test.questions || []);
+        } catch { list.innerHTML = '<p class="text-danger">שגיאה בטעינת השאלות.</p>'; }
+        finally   { spinner.style.display = 'none'; }
+    }
+
+    function renderModalQuestions(questions) {
+        loadedAnswerQuestions.clear();
+        const list = document.getElementById('modal-questions-list');
+        if (questions.length === 0) {
+            list.innerHTML = '<p class="empty-questions">עדיין אין שאלות במבחן זה.</p>'; return;
+        }
+        list.innerHTML = questions.map((q, i) => `
+            <div class="question-block">
+                <div class="question-row">
+                    <span class="q-content">${i + 1}. ${escapeHtml(q.content)}</span>
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                        <span class="q-score">${q.maxScore} נק'</span>
+                        <button class="btn btn-outline-warning btn-sm" type="button"
+                                onclick="toggleAnswers(${q.id})">
+                            🤖 תשובות וציוני AI
+                        </button>
+                    </div>
+                </div>
+                <div class="collapse" id="ans-collapse-${q.id}">
+                    <div class="ans-area">
+                        <form class="ans-submit-form" data-question-id="${q.id}">
+                            <p class="small fw-semibold text-secondary mb-2">📤 הגשת תשובה לבדיקה</p>
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm"
+                                       name="studentName" placeholder="שם התלמיד" required>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-1">קובץ תמונה סרוק (כתב יד)</label>
+                                <input type="file" class="form-control form-control-sm"
+                                       name="imageFile" accept="image/*" required>
+                            </div>
+                            <div class="alert alert-danger ans-error d-none py-1 small mb-2"></div>
+                            <button type="submit" class="btn btn-warning btn-sm w-100">
+                                🤖 שלח לבדיקת AI אוטומטית
+                            </button>
+                        </form>
+                        <div class="small fw-semibold text-secondary mb-2">תשובות שנבדקו</div>
+                        <div id="ans-list-${q.id}">
+                            <p class="text-muted small text-center">טוען תשובות...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>`).join('');
+    }
+
+    document.getElementById('add-question-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const content  = document.getElementById('q-content').value.trim();
+        const maxScore = parseInt(document.getElementById('q-score').value, 10);
+        const errorBox = document.getElementById('q-error');
+        errorBox.classList.add('d-none');
+        try {
+            const res = await apiFetch(`${API_BASE}/${activeTestId}/questions`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, maxScore })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.content || err.maxScore || 'שגיאה בהוספת השאלה';
+                errorBox.classList.remove('d-none'); return;
+            }
+            document.getElementById('q-content').value = '';
+            document.getElementById('q-score').value = '';
+            await loadModalQuestions();
+            await refreshTestCard(activeTestId);
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    // ══════════════════════════════════════════════
+    //  תשובות לשאלה (collapse)
+    // ══════════════════════════════════════════════
+
+    function toggleAnswers(questionId) {
+        bootstrap.Collapse.getOrCreateInstance(
+            document.getElementById(`ans-collapse-${questionId}`)
+        ).toggle();
+        if (!loadedAnswerQuestions.has(questionId)) {
+            loadedAnswerQuestions.add(questionId);
+            loadAnswers(questionId);
+        }
+    }
+
+    async function loadAnswers(questionId) {
+        const list = document.getElementById(`ans-list-${questionId}`);
+        try {
+            const answers = await (await apiFetch(`/api/questions/${questionId}/answers`)).json();
+            renderAnswers(questionId, answers);
+        } catch { list.innerHTML = '<p class="text-danger small">שגיאה בטעינת התשובות.</p>'; }
+    }
+
+    function renderAnswers(questionId, answers) {
+        const list = document.getElementById(`ans-list-${questionId}`);
+        list.innerHTML = answers.length === 0
+            ? '<p class="text-muted small text-center">עדיין אין תשובות לשאלה זו.</p>'
+            : answers.map(buildAnswerCard).join('');
+    }
+
+    function buildAnswerCard(a) {
+        return `
+            <div class="answer-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="student-name">👤 ${escapeHtml(a.studentName)}</span>
+                    <span class="badge bg-primary score-pill">ציון: ${a.score ?? '—'}</span>
+                </div>
+                <div class="feedback-bubble">${a.feedback ? escapeHtml(a.feedback) : 'ממתין לציון...'}</div>
+            </div>`;
+    }
+
+    document.getElementById('modal-questions-list').addEventListener('submit', async (e) => {
+        if (!e.target.classList.contains('ans-submit-form')) return;
+        e.preventDefault();
+        const form        = e.target;
+        const questionId  = parseInt(form.dataset.questionId);
+        const studentName = form.querySelector('[name="studentName"]').value.trim();
+        const fileInput   = form.querySelector('[name="imageFile"]');
+        const errorBox    = form.querySelector('.ans-error');
+        const submitBtn   = form.querySelector('button[type="submit"]');
+        errorBox.classList.add('d-none');
+
+        let handwrittenImageBase64;
+        try { handwrittenImageBase64 = await fileToBase64(fileInput.files[0]); }
+        catch { errorBox.textContent = 'שגיאה בקריאת הקובץ.'; errorBox.classList.remove('d-none'); return; }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> שולח לבדיקת AI...';
+        try {
+            const res = await apiFetch(`/api/questions/${questionId}/answers`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentName, handwrittenImageBase64 })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.studentName || err.handwrittenImageBase64 || 'שגיאה בשליחת התשובה';
+                errorBox.classList.remove('d-none'); return;
+            }
+            const answer = await res.json();
+            form.querySelector('[name="studentName"]').value = '';
+            fileInput.value = '';
+            prependAnswerCard(questionId, answer);
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+        finally   { submitBtn.disabled = false; submitBtn.innerHTML = '🤖 שלח לבדיקת AI אוטומטית'; }
+    });
+
+    function prependAnswerCard(questionId, answer) {
+        const list  = document.getElementById(`ans-list-${questionId}`);
+        const empty = list.querySelector('.text-muted');
+        if (empty) empty.remove();
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = buildAnswerCard(answer);
+        list.prepend(wrapper.firstElementChild);
+    }
+
+    // ══════════════════════════════════════════════
+    //  הגשות מבחן שלם (Submissions)
+    // ══════════════════════════════════════════════
+
+    async function loadSubmissions() {
+        if (submissionsLoaded) return;
+        submissionsLoaded = true;
+
+        const list    = document.getElementById('submissions-list');
+        const spinner = document.getElementById('submissions-loading');
+        list.innerHTML = ''; spinner.classList.remove('d-none');
+        try {
+            const subs = await (await apiFetch(`${API_BASE}/${activeTestId}/submissions`)).json();
+            renderSubmissions(subs);
+        } catch { list.innerHTML = '<p class="text-danger small">שגיאה בטעינת ההגשות.</p>'; }
+        finally   { spinner.classList.add('d-none'); }
+    }
+
+    function renderSubmissions(subs) {
+        const list = document.getElementById('submissions-list');
+        list.innerHTML = subs.length === 0
+            ? '<p class="text-muted text-center">עדיין לא הוגשו מחברות בחינה.</p>'
+            : subs.map(buildSubmissionCard).join('');
+    }
+
+    function buildSubmissionCard(s) {
+        const gradeColor = s.totalGrade >= 90 ? 'bg-success'
+                         : s.totalGrade >= 70 ? 'bg-primary'
+                         : 'bg-warning text-dark';
+        return `
+            <div class="submission-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="student-name">🎓 ${s.student ? escapeHtml(s.student.firstName + ' ' + s.student.lastName) : '—'}</span>
+                    <span class="badge grade-badge ${gradeColor}">${s.totalGrade ?? '—'}</span>
+                </div>
+                <div class="general-feedback-bubble">
+                    ${s.generalFeedback ? escapeHtml(s.generalFeedback) : 'ממתין לבדיקה...'}
+                </div>
+            </div>`;
+    }
+
+    document.getElementById('submit-exam-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const studentId = parseInt(document.getElementById('sub-student-id').value);
+        const fileInput = document.getElementById('sub-exam-file');
+        const errorBox  = document.getElementById('sub-error');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        errorBox.classList.add('d-none');
+
+        if (!studentId) {
+            errorBox.textContent = 'יש לבחור תלמיד.'; errorBox.classList.remove('d-none'); return;
+        }
+
+        let examFileBase64;
+        try { examFileBase64 = await fileToBase64(fileInput.files[0]); }
+        catch { errorBox.textContent = 'שגיאה בקריאת קובץ המבחן.'; errorBox.classList.remove('d-none'); return; }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> בודק מבחן שלם...';
+        try {
+            const res = await apiFetch(`${API_BASE}/${activeTestId}/submissions`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentId, examFileBase64 })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.studentName || err.examFileBase64 || 'שגיאה בהגשת המבחן';
+                errorBox.classList.remove('d-none'); return;
+            }
+            const sub = await res.json();
+            document.getElementById('sub-student-id').value = '';
+            fileInput.value = '';
+            prependSubmissionCard(sub);
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+        finally   { submitBtn.disabled = false; submitBtn.innerHTML = '🤖 שלח לבדיקת מבחן מלאה'; }
+    });
+
+    function prependSubmissionCard(sub) {
+        const list  = document.getElementById('submissions-list');
+        const empty = list.querySelector('.text-muted');
+        if (empty) empty.remove();
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = buildSubmissionCard(sub);
+        list.prepend(wrapper.firstElementChild);
+    }
+
+    // ══════════════════════════════════════════════
+    //  Utils
+    // ══════════════════════════════════════════════
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload  = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, c =>
+            ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // ══════════════════════════════════════════════
+    //  ניהול מקצועות
+    // ══════════════════════════════════════════════
+
+    async function loadSubjects() {
+        try {
+            const subjects = await (await apiFetch('/api/subjects')).json();
+            renderSubjectsTable(subjects);
+            populateSubjectSelects(subjects);
+        } catch (e) { console.error('שגיאה בטעינת מקצועות', e); }
+    }
+
+    function renderSubjectsTable(subjects) {
+        const wrap = document.getElementById('subjects-table-wrap');
+        if (subjects.length === 0) {
+            wrap.innerHTML = '<p class="text-muted text-center small">עדיין אין מקצועות.</p>'; return;
+        }
+        wrap.innerHTML = `
+            <table class="table table-sm table-hover mgmt-table">
+                <thead><tr><th>#</th><th>מקצוע</th></tr></thead>
+                <tbody>
+                    ${subjects.map(s => `
+                        <tr>
+                            <td><span class="badge bg-secondary">${s.id}</span></td>
+                            <td class="student-row-name">${escapeHtml(s.name)}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>`;
+    }
+
+    function populateSubjectSelects(subjects) {
+        const sel = document.getElementById('test-subject');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">בחר מקצוע...</option>';
+        subjects.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+    }
+
+    document.getElementById('add-subject-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name     = document.getElementById('subject-name').value.trim();
+        const errorBox = document.getElementById('subject-error');
+        errorBox.classList.add('d-none');
+        try {
+            const res = await apiFetch('/api/subjects', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.name || 'שגיאה בהוספת המקצוע';
+                errorBox.classList.remove('d-none'); return;
+            }
+            document.getElementById('subject-name').value = '';
+            await loadSubjects();
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    // ══════════════════════════════════════════════
+    //  טעינת selects לטופס יצירת מבחן
+    // ══════════════════════════════════════════════
+
+    async function loadTestFormSelects() {
+        try {
+            const [classrooms, subjects] = await Promise.all([
+                apiFetch('/api/classrooms').then(r => r.json()),
+                apiFetch('/api/subjects').then(r => r.json())
+            ]);
+            const clSel = document.getElementById('test-classroom');
+            const currentCl = clSel.value;
+            clSel.innerHTML = '<option value="">בחר כיתה...</option>';
+            classrooms.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id; opt.textContent = c.className;
+                clSel.appendChild(opt);
+            });
+            clSel.value = currentCl;
+
+            populateSubjectSelects(subjects);
+        } catch (e) { console.error('שגיאה בטעינת selects', e); }
+    }
+
+    // ══════════════════════════════════════════════
+    //  מודל היסטוריית ציונים
+    // ══════════════════════════════════════════════
+
+    const gradesModal = new bootstrap.Modal(document.getElementById('gradesModal'));
+
+    async function openGradesModal(studentId, studentName) {
+        document.getElementById('gradesModalLabel').textContent = `📊 ציונים — ${studentName}`;
+        document.getElementById('grades-list').innerHTML = '';
+        document.getElementById('grades-loading').classList.remove('d-none');
+        gradesModal.show();
+        try {
+            const subs = await (await apiFetch(`/api/students/${studentId}/submissions`)).json();
+            renderGradesList(subs);
+        } catch {
+            document.getElementById('grades-list').innerHTML =
+                '<p class="text-danger small">שגיאה בטעינת הציונים.</p>';
+        } finally {
+            document.getElementById('grades-loading').classList.add('d-none');
+        }
+    }
+
+    function renderGradesList(subs) {
+        const list = document.getElementById('grades-list');
+        if (subs.length === 0) {
+            list.innerHTML = '<p class="text-muted text-center">התלמיד עדיין לא הגיש מבחנים.</p>'; return;
+        }
+        list.innerHTML = subs.map(s => {
+            const gradeColor = s.totalGrade >= 90 ? 'bg-success'
+                             : s.totalGrade >= 70 ? 'bg-primary'
+                             : 'bg-warning text-dark';
+            return `
+                <div class="grade-history-card">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <span class="test-title">${escapeHtml(s.testTitle)}</span>
+                            ${s.subjectName !== '—' ? `<span class="subject-tag me-2">${escapeHtml(s.subjectName)}</span>` : ''}
+                        </div>
+                        <span class="badge grade-badge ${gradeColor}">${s.totalGrade ?? '—'}</span>
+                    </div>
+                    <div class="general-feedback-bubble">
+                        ${s.generalFeedback ? escapeHtml(s.generalFeedback) : 'ממתין למשוב...'}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // ══════════════════════════════════════════════
+    //  ניווט בין מסכים
+    // ══════════════════════════════════════════════
+
+    function showSection(section) {
+        ['tests', 'classrooms', 'reports', 'admin'].forEach(s => {
+            const sec = document.getElementById(`section-${s}`);
+            const btn = document.getElementById(`nav-${s}-btn`);
+            if (sec) sec.style.display = section === s ? '' : 'none';
+            if (btn && !btn.classList.contains('d-none')) {
+                btn.className = section === s
+                    ? (s === 'admin' ? 'btn btn-warning btn-sm fw-semibold' : 'btn btn-light btn-sm fw-semibold')
+                    : (s === 'admin' ? 'btn btn-outline-warning btn-sm fw-semibold' : 'btn btn-outline-light btn-sm fw-semibold');
+            }
+        });
+        if (section === 'classrooms') loadClassroomsSection();
+        if (section === 'reports')    loadReportsSection();
+        if (section === 'admin')      loadAdminTeachers();
+    }
+
+    // ══════════════════════════════════════════════
+    //  דוחות וסטטיסטיקות
+    // ══════════════════════════════════════════════
+
+    async function loadReportsSection() {
+        try {
+            const classrooms = await (await apiFetch('/api/classrooms')).json();
+            const sel = document.getElementById('report-classroom');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">בחר כיתה להצגת הדוח...</option>';
+            classrooms.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id; opt.textContent = c.className;
+                sel.appendChild(opt);
+            });
+            sel.value = current;
+            if (current) loadClassReport();
+        } catch (e) { console.error('שגיאה בטעינת כיתות לדוח', e); }
+    }
+
+    async function loadClassReport() {
+        const classroomId = document.getElementById('report-classroom').value;
+        const placeholder = document.getElementById('report-placeholder');
+        const content     = document.getElementById('report-content');
+
+        if (!classroomId) {
+            placeholder.style.display = '';
+            content.style.display     = 'none';
+            return;
+        }
+
+        placeholder.style.display = 'none';
+        try {
+            const r = await (await apiFetch(`/api/classrooms/${classroomId}/report`)).json();
+            renderReport(r);
+            content.style.display = '';
+        } catch (e) {
+            placeholder.textContent = 'שגיאה בטעינת הדוח.';
+            placeholder.style.display = '';
+        }
+    }
+
+    function renderReport(r) {
+        document.getElementById('stat-avg').textContent   = r.totalSubmissions === 0 ? '—' : r.averageScore;
+        document.getElementById('stat-pass').textContent  = r.totalSubmissions === 0 ? '—' : r.successRate + '%';
+        document.getElementById('stat-total').textContent = r.totalSubmissions;
+
+        const total = r.totalSubmissions || 1; // מניעת חלוקה באפס
+        setBar('excellent', r.excellentCount, total);
+        setBar('good',      r.goodCount,      total);
+        setBar('passing',   r.passingCount,   total);
+        setBar('fail',      r.failCount,      total);
+
+        renderStudentAveragesTable(r.studentAverages || []);
+    }
+
+    function renderStudentAveragesTable(averages) {
+        const wrap      = document.getElementById('student-averages-wrap');
+        const tableDiv  = document.getElementById('student-averages-table');
+        const btnExport = document.getElementById('btn-export-csv');
+        if (!averages || averages.length === 0) {
+            wrap.style.display = 'none';
+            btnExport.style.display = 'none';
+            return;
+        }
+        wrap.style.display = '';
+        btnExport.style.display = '';
+        tableDiv.innerHTML = `
+            <table class="table table-sm table-hover mgmt-table">
+                <thead>
+                    <tr><th>תלמיד</th><th>ממוצע</th><th>מחברות</th></tr>
+                </thead>
+                <tbody>
+                    ${averages.map(a => {
+                        const cls = a.averageScore >= 86 ? 'bg-success'
+                                  : a.averageScore >= 71 ? 'bg-primary'
+                                  : a.averageScore >= 56 ? 'bg-warning text-dark'
+                                  : 'bg-danger';
+                        return `<tr>
+                            <td class="student-row-name">${escapeHtml(a.studentName)}</td>
+                            <td><span class="badge ${cls}">${a.averageScore}</span></td>
+                            <td class="text-muted">${a.submissionCount}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>`;
+    }
+
+    function exportReportToCSV() {
+        const rows = document.querySelectorAll('#student-averages-table table tbody tr');
+        if (!rows.length) return;
+
+        const lines = ['\uFEFF' + 'שם התלמיד,ממוצע ציונים'];
+        rows.forEach(tr => {
+            const name = tr.querySelector('td.student-row-name')?.textContent.trim() ?? '';
+            const avg  = tr.querySelector('td:nth-child(2) .badge')?.textContent.trim() ?? '';
+            lines.push(`"${name}","${avg}"`);
+        });
+
+        const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'דוח_ממוצעי_ציונים.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function setBar(key, count, total) {
+        const pct = Math.round(count / total * 100);
+        const bar = document.getElementById(`bar-${key}`);
+        bar.style.width   = pct + '%';
+        bar.textContent   = pct > 8 ? pct + '%' : '';
+        bar.setAttribute('aria-valuenow', pct);
+        document.getElementById(`bar-${key}-count`).textContent = count + ' תלמידים';
+    }
+
+    // ══════════════════════════════════════════════
+    //  ניהול כיתות
+    // ══════════════════════════════════════════════
+
+    async function loadClassroomsSection() {
+        await Promise.all([loadClassrooms(), loadStudentsTable(), loadSubjects()]);
+    }
+
+    async function loadClassrooms() {
+        try {
+            const classrooms = await (await apiFetch('/api/classrooms')).json();
+            renderClassroomsTable(classrooms);
+            populateClassroomSelect(classrooms);
+        } catch (e) { console.error('שגיאה בטעינת כיתות', e); }
+    }
+
+    function renderClassroomsTable(classrooms) {
+        const wrap = document.getElementById('classrooms-table-wrap');
+        if (classrooms.length === 0) {
+            wrap.innerHTML = '<p class="text-muted text-center small">עדיין אין כיתות במערכת.</p>'; return;
+        }
+        wrap.innerHTML = `
+            <table class="table table-sm table-hover mgmt-table">
+                <thead><tr><th>#</th><th>שם הכיתה</th><th class="action-col">פעולות</th></tr></thead>
+                <tbody>
+                    ${classrooms.map(c => `
+                        <tr>
+                            <td><span class="badge bg-secondary">${c.id}</span></td>
+                            <td class="student-row-name">${escapeHtml(c.className)}</td>
+                            <td class="action-col">
+                                <button class="btn btn-outline-primary btn-action me-1"
+                                        onclick="editClassroom(${c.id}, '${escapeHtml(c.className)}')">✏️</button>
+                                <button class="btn btn-outline-danger btn-action"
+                                        onclick="deleteClassroom(${c.id}, '${escapeHtml(c.className)}')">🗑️</button>
+                            </td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>`;
+    }
+
+    function populateClassroomSelect(classrooms) {
+        // select בטופס הוספת תלמיד
+        const sel = document.getElementById('student-classroom');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">בחר כיתה...</option>';
+        classrooms.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id; opt.textContent = c.className;
+            sel.appendChild(opt);
+        });
+        sel.value = current;
+
+        // select בטופס יצירת מבחן
+        const testSel = document.getElementById('test-classroom');
+        const testCurrent = testSel.value;
+        testSel.innerHTML = '<option value="">בחר כיתה...</option>';
+        classrooms.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id; opt.textContent = c.className;
+            testSel.appendChild(opt);
+        });
+        testSel.value = testCurrent;
+    }
+
+    document.getElementById('add-classroom-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const className = document.getElementById('classroom-name').value.trim();
+        const errorBox  = document.getElementById('classroom-error');
+        errorBox.classList.add('d-none');
+        try {
+            const res = await apiFetch('/api/classrooms', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ className })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.className || 'שגיאה בהוספת הכיתה';
+                errorBox.classList.remove('d-none'); return;
+            }
+            document.getElementById('classroom-name').value = '';
+            await loadClassrooms();
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    // ══════════════════════════════════════════════
+    //  ניהול תלמידים
+    // ══════════════════════════════════════════════
+
+    async function loadStudentsTable() {
+        try {
+            const students = await (await apiFetch('/api/students')).json();
+            renderStudentsTable(students);
+        } catch (e) { console.error('שגיאה בטעינת תלמידים', e); }
+    }
+
+    async function loadStudentsDropdown() {
+        try {
+            const students = await (await apiFetch('/api/students')).json();
+            const sel = document.getElementById('sub-student-id');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">בחר תלמיד...</option>';
+            students.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.firstName} ${s.lastName}${s.classroom ? ' — ' + s.classroom.className : ''}`;
+                sel.appendChild(opt);
+            });
+            sel.value = current;
+        } catch (e) { console.error('שגיאה בטעינת תלמידים', e); }
+    }
+
+    function renderStudentsTable(students) {
+        const wrap = document.getElementById('students-table-wrap');
+        if (students.length === 0) {
+            wrap.innerHTML = '<p class="text-muted text-center small">עדיין אין תלמידים במערכת.</p>'; return;
+        }
+        wrap.innerHTML = `
+            <table class="table table-sm table-hover mgmt-table">
+                <thead><tr><th>#</th><th>שם</th><th>כיתה</th><th class="action-col">פעולות</th></tr></thead>
+                <tbody>
+                    ${students.map(s => `
+                        <tr>
+                            <td><span class="badge bg-secondary">${s.id}</span></td>
+                            <td class="student-row-name">${escapeHtml(s.firstName + ' ' + s.lastName)}</td>
+                            <td><span class="classroom-pill">${s.classroom ? escapeHtml(s.classroom.className) : '—'}</span></td>
+                            <td class="action-col">
+                                <button class="btn btn-outline-secondary btn-action me-1"
+                                        onclick="openGradesModal(${s.id}, '${escapeHtml(s.firstName + ' ' + s.lastName)}')">
+                                    📊
+                                </button>
+                                <button class="btn btn-outline-primary btn-action me-1"
+                                        onclick="editStudent(${s.id}, '${escapeHtml(s.firstName)}', '${escapeHtml(s.lastName)}')">✏️</button>
+                                <button class="btn btn-outline-danger btn-action"
+                                        onclick="deleteStudent(${s.id}, '${escapeHtml(s.firstName + ' ' + s.lastName)}')">🗑️</button>
+                            </td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>`;
+    }
+
+    document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const firstName   = document.getElementById('student-first').value.trim();
+        const lastName    = document.getElementById('student-last').value.trim();
+        const classroomId = document.getElementById('student-classroom').value;
+        const errorBox    = document.getElementById('student-error');
+        errorBox.classList.add('d-none');
+
+        if (!classroomId) {
+            errorBox.textContent = 'יש לבחור כיתה.'; errorBox.classList.remove('d-none'); return;
+        }
+        try {
+            const res = await apiFetch(`/api/classrooms/${classroomId}/students`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ firstName, lastName })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.firstName || err.lastName || 'שגיאה בהוספת התלמיד';
+                errorBox.classList.remove('d-none'); return;
+            }
+            document.getElementById('student-first').value = '';
+            document.getElementById('student-last').value  = '';
+            await loadStudentsTable();
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    // ══════════════════════════════════════════════
+    //  CRUD — עריכה ומחיקה
+    // ══════════════════════════════════════════════
+
+    let _editModal = null;
+    function getEditModal() {
+        if (!_editModal) _editModal = new bootstrap.Modal(document.getElementById('editModal'));
+        return _editModal;
+    }
+
+    // ── כיתות ──
+    function editClassroom(id, currentName) {
+        document.getElementById('editModalTitle').textContent = '✏️ עריכת כיתה';
+        document.getElementById('editModalBody').innerHTML = `
+            <div class="mb-3">
+                <label class="form-label fw-semibold">שם הכיתה</label>
+                <input type="text" id="edit-classroom-name" class="form-control" value="${escapeHtml(currentName)}" required>
+            </div>`;
+        document.getElementById('editModalSave').onclick = async () => {
+            const newName = document.getElementById('edit-classroom-name').value.trim();
+            if (!newName) return;
+            try {
+                const res = await apiFetch(`/api/classrooms/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ className: newName })
+                });
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                    await loadClassrooms();
+                } else {
+                    alert('שגיאה בעדכון הכיתה.');
+                }
+            } catch { alert('לא ניתן להתחבר לשרת.'); }
+        };
+        getEditModal().show();
+    }
+
+    async function deleteClassroom(id, name) {
+        if (!confirm(`האם למחוק את הכיתה "${name}"?\nכל התלמידים והגשותיהם בכיתה זו יימחקו גם כן.`)) return;
+        try {
+            const res = await apiFetch(`/api/classrooms/${id}`, { method: 'DELETE' });
+            if (res.ok) await loadClassrooms();
+            else alert('שגיאה במחיקת הכיתה.');
+        } catch { alert('לא ניתן להתחבר לשרת.'); }
+    }
+
+    // ── תלמידים ──
+    function editStudent(id, firstName, lastName) {
+        document.getElementById('editModalTitle').textContent = '✏️ עריכת תלמיד';
+        document.getElementById('editModalBody').innerHTML = `
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">שם פרטי</label>
+                    <input type="text" id="edit-student-first" class="form-control" value="${escapeHtml(firstName)}" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">שם משפחה</label>
+                    <input type="text" id="edit-student-last" class="form-control" value="${escapeHtml(lastName)}" required>
+                </div>
+            </div>`;
+        document.getElementById('editModalSave').onclick = async () => {
+            const newFirst = document.getElementById('edit-student-first').value.trim();
+            const newLast  = document.getElementById('edit-student-last').value.trim();
+            if (!newFirst || !newLast) return;
+            try {
+                const res = await apiFetch(`/api/students/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName: newFirst, lastName: newLast })
+                });
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                    await loadStudentsTable();
+                } else {
+                    alert('שגיאה בעדכון התלמיד.');
+                }
+            } catch { alert('לא ניתן להתחבר לשרת.'); }
+        };
+        getEditModal().show();
+    }
+
+    async function deleteStudent(id, name) {
+        if (!confirm(`האם למחוק את התלמיד "${name}"?\nכל הגשות המבחנים שלו יימחקו גם כן.`)) return;
+        try {
+            const res = await apiFetch(`/api/students/${id}`, { method: 'DELETE' });
+            if (res.ok) await loadStudentsTable();
+            else alert('שגיאה במחיקת התלמיד.');
+        } catch { alert('לא ניתן להתחבר לשרת.'); }
+    }
+
+    // ── מבחנים ──
+    async function editTest(id, currentTitle, currentSubjectId, currentClassroomId) {
+        // טעינת רשימות לבחירה
+        let subjects = [], classrooms = [];
+        try {
+            [subjects, classrooms] = await Promise.all([
+                apiFetch('/api/subjects').then(r => r.json()),
+                apiFetch('/api/classrooms').then(r => r.json())
+            ]);
+        } catch { alert('שגיאה בטעינת נתונים.'); return; }
+
+        const subjectOptions = subjects.map(s =>
+            `<option value="${s.id}" ${s.id === currentSubjectId ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+        ).join('');
+        const classroomOptions = classrooms.map(c =>
+            `<option value="${c.id}" ${c.id === currentClassroomId ? 'selected' : ''}>${escapeHtml(c.className)}</option>`
+        ).join('');
+
+        document.getElementById('editModalTitle').textContent = '✏️ עריכת מבחן';
+        document.getElementById('editModalBody').innerHTML = `
+            <div class="mb-3">
+                <label class="form-label fw-semibold">כותרת המבחן</label>
+                <input type="text" id="edit-test-title" class="form-control" value="${escapeHtml(currentTitle)}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">📚 מקצוע</label>
+                <select id="edit-test-subject" class="form-select">
+                    <option value="">ללא שינוי</option>
+                    ${subjectOptions}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">🏫 כיתה</label>
+                <select id="edit-test-classroom" class="form-select">
+                    <option value="">ללא שינוי</option>
+                    ${classroomOptions}
+                </select>
+            </div>
+            <hr class="my-3">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">📋 החלפת שאלון מקור <span class="text-muted fw-normal">(אופציונלי)</span></label>
+                <input type="file" id="edit-test-qfile" class="form-control"
+                       accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
+                <div class="form-text">העלה קובץ חדש להחלפת השאלון הקיים. ה-AI יחלץ שאלות מחדש.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">🔑 החלפת מפתח תשובות <span class="text-muted fw-normal">(אופציונלי)</span></label>
+                <input type="file" id="edit-test-sfile" class="form-control"
+                       accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg">
+                <div class="form-text">העלה קובץ חדש להחלפת הפתרונות הקיימים.</div>
+            </div>`;
+        document.getElementById('editModalSave').onclick = async () => {
+            const newTitle       = document.getElementById('edit-test-title').value.trim();
+            const newSubjectId   = document.getElementById('edit-test-subject').value   || null;
+            const newClassroomId = document.getElementById('edit-test-classroom').value || null;
+            const qFileInput     = document.getElementById('edit-test-qfile');
+            const sFileInput     = document.getElementById('edit-test-sfile');
+            if (!newTitle) { alert('נא למלא כותרת.'); return; }
+
+            const body = { title: newTitle };
+            if (newSubjectId)   body.subjectId   = parseInt(newSubjectId);
+            if (newClassroomId) body.classroomId = parseInt(newClassroomId);
+
+            try {
+                if (qFileInput.files[0]) body.questionPaperFile  = await fileToBase64(qFileInput.files[0]);
+                if (sFileInput.files[0]) body.masterSolutionFile = await fileToBase64(sFileInput.files[0]);
+            } catch { alert('שגיאה בקריאת הקובץ.'); return; }
+
+            try {
+                const res = await apiFetch(`/api/tests/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                    await loadTests();
+                } else {
+                    alert('שגיאה בעדכון המבחן.');
+                }
+            } catch { alert('לא ניתן להתחבר לשרת.'); }
+        };
+        getEditModal().show();
+    }
+
+    async function deleteTest(id, title) {
+        if (!confirm(`האם למחוק את המבחן "${title}"?\nכל השאלות וההגשות שלו יימחקו גם כן.`)) return;
+        try {
+            const res = await apiFetch(`/api/tests/${id}`, { method: 'DELETE' });
+            if (res.ok) await loadTests();
+            else alert('שגיאה במחיקת המבחן.');
+        } catch { alert('לא ניתן להתחבר לשרת.'); }
+    }
+
+    // ══════════════════════════════════════════════
+    //  Auth — התחברות / הרשמה
+    // ══════════════════════════════════════════════
+
+    function showAuthTab(tab) {
+        document.getElementById('auth-login-tab').style.display    = tab === 'login'    ? '' : 'none';
+        document.getElementById('auth-register-tab').style.display = tab === 'register' ? '' : 'none';
+        document.getElementById('auth-forgot-tab').style.display   = tab === 'forgot'   ? '' : 'none';
+        document.querySelectorAll('#auth-tabs .nav-link').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const identityNumber = document.getElementById('login-id').value.trim();
+        const password       = document.getElementById('login-pass').value;
+        const errorBox       = document.getElementById('login-error');
+        errorBox.classList.add('d-none');
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identityNumber, password })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.error || 'מספר זהות או סיסמה שגויים';
+                errorBox.classList.remove('d-none'); return;
+            }
+            const teacher = await res.json();
+            localStorage.setItem('teacher', JSON.stringify(teacher));
+            showMainApp(teacher);
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const identityNumber = document.getElementById('reg-id').value.trim();
+        const fullName       = document.getElementById('reg-name').value.trim();
+        const email          = document.getElementById('reg-email').value.trim();
+        const password       = document.getElementById('reg-pass').value;
+        const errorBox       = document.getElementById('register-error');
+        errorBox.classList.add('d-none');
+        try {
+            const body = { identityNumber, fullName, password };
+            if (email) body.email = email;
+            const res = await fetch('/api/auth/register', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.error || 'שגיאה בהרשמה';
+                errorBox.classList.remove('d-none'); return;
+            }
+            const teacher = await res.json();
+            localStorage.setItem('teacher', JSON.stringify(teacher));
+            showMainApp(teacher);
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    document.getElementById('forgot-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email      = document.getElementById('forgot-email').value.trim();
+        const errorBox   = document.getElementById('forgot-error');
+        const successBox = document.getElementById('forgot-success');
+        errorBox.classList.add('d-none');
+        successBox.classList.add('d-none');
+        try {
+            const res = await fetch('/api/auth/forgot-password', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                errorBox.textContent = err.error || 'שגיאה בשליחת הבקשה';
+                errorBox.classList.remove('d-none'); return;
+            }
+            const data = await res.json();
+            successBox.textContent = data.message || 'הוראות שחזור הסיסמה נשלחו לאימייל';
+            successBox.classList.remove('d-none');
+            document.getElementById('forgot-email').value = '';
+        } catch { errorBox.textContent = 'לא ניתן להתחבר לשרת.'; errorBox.classList.remove('d-none'); }
+    });
+
+    // ══════════════════════════════════════════════
+    //  Init
+    // ══════════════════════════════════════════════
+
+    function showMainApp(teacher) {
+        document.getElementById('login-overlay').style.display = 'none';
+        const roleLabels = { PRINCIPAL: 'מנהל', HOMEROOM: 'מחנכת', SUBJECT: 'מורה מקצועית' };
+        const roleLabel  = teacher.role ? (roleLabels[teacher.role] || '') : '';
+        const detailTag = teacher.role === 'SUBJECT' && teacher.specializedSubject
+            ? ` (${teacher.specializedSubject})`
+            : teacher.role === 'HOMEROOM' && teacher.assignedClass
+            ? ` · כיתה ${teacher.assignedClass}` : '';
+        document.getElementById('teacher-name-display').textContent =
+            `👤 ${teacher.fullName}${roleLabel ? ' · ' + roleLabel : ''}${detailTag}`;
+        document.getElementById('teacher-info').classList.remove('d-none');
+        // כפתור ניהול מורות — מנהל בלבד
+        const adminBtn = document.getElementById('nav-admin-btn');
+        if (teacher.role === 'PRINCIPAL') {
+            adminBtn.classList.remove('d-none');
+        } else {
+            adminBtn.classList.add('d-none');
+        }
+        loadTests();
+        loadTestFormSelects();
+    }
+
+    function logout() {
+        localStorage.removeItem('teacher');
+        location.reload();
+    }
+
+    // ══════════════════════════════════════════════
+    //  ניהול מורות (מנהל בלבד)
+    // ══════════════════════════════════════════════
+
+    async function loadAdminTeachers() {
+        const listDiv = document.getElementById('admin-teachers-list');
+        listDiv.innerHTML = '<div class="text-center text-muted py-4">טוען רשימת מורות...</div>';
+        try {
+            const res = await apiFetch('/api/teachers');
+            if (res.status === 403) {
+                listDiv.innerHTML = '<div class="alert alert-danger">אין הרשאה — מנהל בלבד</div>';
+                return;
+            }
+            const teachers = await res.json();
+            if (!teachers.length) {
+                listDiv.innerHTML = '<p class="text-muted text-center py-3">לא נמצאו מורות במערכת</p>';
+                return;
+            }
+            listDiv.innerHTML = `
+                <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>שם מלא</th>
+                            <th>ת"ז</th>
+                            <th>אימייל</th>
+                            <th>תפקיד</th>
+                            <th>כיתה / מקצוע</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${teachers.map(t => `
+                            <tr id="teacher-row-${t.id}">
+                                <td class="fw-semibold">${escapeHtml(t.fullName)}</td>
+                                <td class="text-muted small">${escapeHtml(t.identityNumber)}</td>
+                                <td class="text-muted small">${escapeHtml(t.email || '—')}</td>
+                                <td>
+                                    <select class="form-select form-select-sm"
+                                            id="admin-role-${t.id}"
+                                            onchange="onAdminRoleChange(${t.id})"
+                                            style="min-width:140px">
+                                        <option value="PRINCIPAL" ${t.role === 'PRINCIPAL' ? 'selected' : ''}>מנהל</option>
+                                        <option value="HOMEROOM"  ${t.role === 'HOMEROOM'  ? 'selected' : ''}>מחנכת</option>
+                                        <option value="SUBJECT"   ${t.role === 'SUBJECT'   ? 'selected' : ''}>מורה מקצועית</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text"
+                                           class="form-control form-control-sm mb-1"
+                                           id="admin-subject-${t.id}"
+                                           value="${escapeHtml(t.specializedSubject || '')}"
+                                           placeholder="שם המקצוע"
+                                           style="display:${t.role === 'SUBJECT' ? '' : 'none'}; min-width:120px">
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           id="admin-class-${t.id}"
+                                           value="${escapeHtml(t.assignedClass || '')}"
+                                           placeholder="כיתה (למשל ט&apos;1)"
+                                           style="display:${t.role === 'HOMEROOM' ? '' : 'none'}; min-width:120px">
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="saveTeacherRole(${t.id})">שמור</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                </div>
+                <div id="admin-save-msg" class="mt-2"></div>`;
+        } catch {
+            listDiv.innerHTML = '<div class="alert alert-danger">שגיאה בטעינת הרשימה</div>';
+        }
+    }
+
+    function onAdminRoleChange(teacherId) {
+        const role         = document.getElementById(`admin-role-${teacherId}`).value;
+        const subjectInput = document.getElementById(`admin-subject-${teacherId}`);
+        const classInput   = document.getElementById(`admin-class-${teacherId}`);
+        subjectInput.style.display = role === 'SUBJECT'   ? '' : 'none';
+        classInput.style.display   = role === 'HOMEROOM'  ? '' : 'none';
+        if (role !== 'SUBJECT')  subjectInput.value = '';
+        if (role !== 'HOMEROOM') classInput.value   = '';
+    }
+
+    async function saveTeacherRole(teacherId) {
+        const role          = document.getElementById(`admin-role-${teacherId}`).value;
+        const subject       = document.getElementById(`admin-subject-${teacherId}`).value.trim();
+        const assignedClass = document.getElementById(`admin-class-${teacherId}`).value.trim();
+        const msgDiv        = document.getElementById('admin-save-msg');
+        try {
+            const res = await apiFetch(`/api/teachers/${teacherId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    role,
+                    specializedSubject: subject       || null,
+                    assignedClass:      assignedClass || null
+                })
+            });
+            if (res.ok) {
+                // עדכון localStorage אם מדובר במורה הנוכחית עצמה
+                const current = JSON.parse(localStorage.getItem('teacher') || 'null');
+                if (current && current.id === teacherId) {
+                    current.role              = role;
+                    current.specializedSubject = subject       || null;
+                    current.assignedClass      = assignedClass || null;
+                    localStorage.setItem('teacher', JSON.stringify(current));
+                    showMainApp(current);
+                }
+                msgDiv.innerHTML = `<div class="alert alert-success py-2 small">התפקיד עודכן בהצלחה</div>`;
+                setTimeout(() => { msgDiv.innerHTML = ''; }, 3000);
+            } else {
+                msgDiv.innerHTML = `<div class="alert alert-danger py-2 small">שגיאה בשמירה</div>`;
+            }
+        } catch {
+            msgDiv.innerHTML = `<div class="alert alert-danger py-2 small">שגיאה בחיבור לשרת</div>`;
+        }
+    }
+
+    // בדיקת session קיים
+    const _savedTeacher = JSON.parse(localStorage.getItem('teacher') || 'null');
+    if (_savedTeacher && _savedTeacher.id) {
+        showMainApp(_savedTeacher);
+    }
+</script>
+
+<!-- ══ Floating Chat Assistant ══ -->
+<button id="chat-fab" onclick="toggleChat()" title="פתח עוזר אישי">
+    🤖
+    <span id="chat-fab-badge"></span>
+</button>
+
+<div id="chat-window">
+    <!-- כותרת -->
+    <div class="chat-header">
+        <div class="bot-avatar">🎓</div>
+        <div class="bot-info">
+            <div class="bot-name">העוזר הדיגיטלי שלך</div>
+            <div class="bot-status">מוכן לעזור</div>
+        </div>
+        <button id="chat-mute-btn" class="chat-close-btn" onclick="toggleMute()" title="השתק/הפעל קול">🔊</button>
+        <button class="chat-close-btn" onclick="toggleChat()" title="סגור">✕</button>
+    </div>
+    <!-- הודעות -->
+    <div id="chat-messages"></div>
+    <!-- שורת קלט -->
+    <div class="chat-input-row">
+        <button id="chat-send" onclick="sendChatMessage()" title="שלח">&#10148;</button>
+        <textarea id="chat-input"
+                  placeholder="שאל אותי משהו..."
+                  rows="1"
+                  oninput="autoResizeChatInput(this)"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+    </div>
+</div>
+
+<script>
+    // ══════════════════════════════════════════════
+    //  Chat Assistant
+    // ══════════════════════════════════════════════
+
+    let _chatIsOpen = false;
+    let isMuted     = false;
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        document.getElementById('chat-mute-btn').textContent = isMuted ? '🔇' : '🔊';
+        if (isMuted && window.speechSynthesis) {
+            window.speechSynthesis.cancel(); // עצור דיבור פעיל מיידית
+        }
+    }
+
+    // ── צליל לחיצה ──
+    // להחלפה לקובץ מקומי: שנה את הכתובת ל- '/sounds/click.wav' (או כל נתיב מקומי)
+    const _CLICK_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
+    let _clickAudio = null;
+    function _playClickSound() {
+        if (isMuted) return;
+        try {
+            if (!_clickAudio) {
+                _clickAudio = new Audio(_CLICK_SOUND_URL);
+                _clickAudio.volume = 0.55;
+            }
+            _clickAudio.currentTime = 0;
+            _clickAudio.play().catch(() => {});
+        } catch (e) {}
+    }
+
+    // ── TTS — טעינת קולות מוקדמת ──
+    // Chrome/Edge טוענים את רשימת הקולות באופן אסינכרוני;
+    // נטרום-אתחל אותם ברגע שהדפדפן מוכן כדי שלא נאחר בפתיחת הצ'אט.
+    let _ttsVoices = [];
+    function _loadVoices() {
+        const v = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        if (v.length > 0) { _ttsVoices = v; }
+    }
+    if (window.speechSynthesis) {
+        _loadVoices();
+        window.speechSynthesis.onvoiceschanged = () => { _loadVoices(); };
+    }
+
+    // ── קריאת טקסט בקול (TTS) ──
+    function _speakHebrew(text) {
+        if (!window.speechSynthesis || isMuted) return;
+        window.speechSynthesis.cancel();
+
+        const utt    = new SpeechSynthesisUtterance(text);
+        utt.lang     = 'he-IL';
+        utt.rate     = 0.88;   // קצת איטי — נשמע מקצועי ומדוד
+        utt.pitch    = 0.85;   // גובה קול נמוך — סגנון "רובוט מורה"
+        utt.volume   = 0.9;
+
+        // סינון: he-IL קודם, אחר-כך כל קול עברי — אם לא נמצא, לא מדברים בכלל
+        const voices = _ttsVoices.length ? _ttsVoices : window.speechSynthesis.getVoices();
+        const heVoice = voices.find(v => v.lang === 'he-IL') ||
+                        voices.find(v => v.lang.toLowerCase().startsWith('he'));
+        if (!heVoice) {
+            console.warn('[TTS] אין קול עברי מותקן — TTS מושבת. קולות זמינים:', voices.map(v => v.lang + ' / ' + v.name));
+            return; // לא מפעילים TTS בכלל — ההודעה תופיע כטקסט בלבד
+        }
+        utt.voice = heVoice;
+        window.speechSynthesis.speak(utt);
+    }
+
+    // עוזר: מפעיל speak עם ודאות שהקולות כבר נטענו
+    function _speakWhenReady(text) {
+        if (!window.speechSynthesis) return;
+        if (_ttsVoices.length > 0) {
+            _speakHebrew(text);
+        } else {
+            // קולות עדיין לא נטענו — נחכה לאירוע, עם timeout כגיבוי
+            const doSpeak = () => { _loadVoices(); _speakHebrew(text); };
+            const timer   = setTimeout(doSpeak, 800); // גיבוי אם onvoiceschanged לא יפעל
+            const origHandler = window.speechSynthesis.onvoiceschanged;
+            window.speechSynthesis.onvoiceschanged = () => {
+                clearTimeout(timer);
+                window.speechSynthesis.onvoiceschanged = origHandler || null;
+                doSpeak();
+            };
+        }
+    }
+
+    const _botReplies = [
+        'תודה על שאלתך! כדי לצפות בציוני תלמיד, לחצ/י על שמו ברשימת ההגשות בתוך כל מבחן.',
+        'בשמחה! אפשר לייצא את הדוח ל-CSV בסקציית הדוחות וסטטיסטיקות — לחצ/י על הכפתור הירוק מעל הטבלה.',
+        'שאלה מצוינת! ניתן להוסיף תלמיד חדש מסקציית ניהול כיתות ותלמידים, בטופס "הוספת תלמיד".',
+        'כמובן! כדי ליצור מבחן חדש עם שאלות, עבור/י לסקציית ניהול מבחנים ומלא/י את הטופס בחלק העליון.',
+        'בהחלט! ניתן לשנות ציון ידנית בתוך פרטי ההגשה — לחצ/י על ה"עיפרון" שליד תשובת התלמיד.',
+        'מעולה! המערכת מאפשרת לראות ממוצע כיתתי ואישי בסקציית הדוחות. בחר/י כיתה מהרשימה לצפייה.',
+        'כן, אפשרי! ביצוא ה-CSV הכולל BOM מובנה — הקובץ ייפתח בעברית תקינה ישירות ב-Excel.',
+    ];
+
+    function toggleChat() {
+        const win   = document.getElementById('chat-window');
+        const badge = document.getElementById('chat-fab-badge');
+        _playClickSound();
+        _chatIsOpen = !_chatIsOpen;
+        if (_chatIsOpen) {
+            win.classList.add('chat-open');
+            badge.classList.remove('visible');
+            // הודעת פתיחה — רק בפעם הראשונה
+            if (document.getElementById('chat-messages').childElementCount === 0) {
+                const openingMsg =
+                    'שלום! אני העוזר הדיגיטלי שלך למשוב ומבחנים.\n' +
+                    'אני כאן כדי לסייע לך בניהול המערכת — ניתן לשאול על ציונים, דוחות, תלמידים, ייצוא נתונים ועוד.\n' +
+                    'במה אוכל לעזור לך היום?';
+                setTimeout(() => {
+                    _appendBotMsg(openingMsg);
+                    _speakWhenReady(openingMsg);
+                }, 380);
+            }
+            setTimeout(() => document.getElementById('chat-input').focus(), 320);
+        } else {
+            win.classList.remove('chat-open');
+            window.speechSynthesis && window.speechSynthesis.cancel(); // עצור דיבור בסגירה
+        }
+    }
+
+    function _appendBotMsg(text) {
+        const box = document.getElementById('chat-messages');
+        const el  = document.createElement('div');
+        el.className = 'chat-msg bot';
+        el.style.whiteSpace = 'pre-line';
+        el.textContent = text;
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function _appendUserMsg(text) {
+        const box = document.getElementById('chat-messages');
+        const el  = document.createElement('div');
+        el.className = 'chat-msg user';
+        el.textContent = text;
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function _showThinking() {
+        const box = document.getElementById('chat-messages');
+        const el  = document.createElement('div');
+        el.id = 'chat-thinking';
+        el.className = 'thinking-dots';
+        el.innerHTML = '<span></span><span></span><span></span>';
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function _hideThinking() {
+        const el = document.getElementById('chat-thinking');
+        if (el) el.remove();
+    }
+
+    function autoResizeChatInput(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 88) + 'px';
+    }
+
+    function sendChatMessage() {
+        try {
+            const input = document.getElementById('chat-input');
+            const userText = input.value.trim();
+            console.log('[Chat] Sending text to server:', userText);
+            if (!userText) return;
+
+            _appendUserMsg(userText);
+            input.value = '';
+            input.style.height = 'auto';
+            input.focus();
+
+            _showThinking();
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userText })
+            })
+            .then(function(res) {
+                console.log('[Chat] Server HTTP status:', res.status);
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                return res.json();
+            })
+            .then(function(data) {
+                console.log('[Chat] Server response:', data);
+                _hideThinking();
+                var reply = data.reply || data.error || 'לא התקבלה תשובה.';
+                _appendBotMsg(reply);
+                // TTS — מבודד לחלוטין, לא משפיע על זרימת השיחה
+                try { _speakWhenReady(reply); } catch(e) { console.warn('[TTS] שגיאה:', e); }
+            })
+            .catch(function(err) {
+                console.error('[Chat] שגיאת תקשורת עם השרת:', err);
+                _hideThinking();
+                _appendBotMsg('שגיאה בחיבור לשרת (' + err.message + '). בדוק שהשרת פעיל ונסה שוב.');
+            });
+
+        } catch(syncErr) {
+            console.error('[Chat] שגיאה סינכרונית בפונקציה:', syncErr);
+        }
+    }
+</script>
+</body>
+</html>
