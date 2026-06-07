@@ -1,6 +1,6 @@
 #FileLock
-#Fri Jun 05 12:41:35 IDT 2026
-hostName=SABAN
-id=19e9728d30074e8f658c0c74298849da006c82ea15f
+#Sun Jun 07 13:55:50 IDT 2026
+hostName=SABAN.lan
+id=19ea1b97aebb6e388f6105cb79ef495dea9c1efbd4b
 method=file
-server=192.168.150.168\:57757
+server=192.168.1.218\:60512
